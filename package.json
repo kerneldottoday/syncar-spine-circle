@@ -1,0 +1,15 @@
+{
+  "name": "syncar-spine-export",
+  "version": "1.0.0",
+  "description": "Frame-accurate PNG/WebM/ProRes exporter for the SyncAR Spine animation",
+  "main": "export.js",
+  "scripts": {
+    "export": "node export.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "puppeteer": "^21.11.0"
+  }
+}

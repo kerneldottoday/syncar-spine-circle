@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SyncAR Spine — Alpha Export</title>
+
+  <!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║  ALPHA VERSION — for OBS WebM recording with alpha channel   ║
+  ║                                                              ║
+  ║  OBS Setup:                                                  ║
+  ║  1. Add a "Browser Source" pointing to this file             ║
+  ║     (or serve via http://localhost:8765/syncar-circle/       ║
+  ║      index-alpha.html)                                       ║
+  ║  2. Check "Allow transparency" in the Browser Source         ║
+  ║     settings                                                 ║
+  ║  3. Record output as WebM (VP8/VP9 with alpha support)       ║
+  ║  4. The background will be fully transparent —               ║
+  ║     only the diagram, text and glow will be captured         ║
+  ╚══════════════════════════════════════════════════════════════╝
+  -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- Force fully transparent background — overrides styles.css #000000 -->
+  <style>
+    html, body {
+      background: transparent !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="scene">
+
+    <!-- ── PARTICLE LAYER ──────────────────────────────────── -->
+    <canvas id="bg-particles"></canvas>
+
+    <svg id="diagram"
+         viewBox="0 0 1920 1080"
+         width="1920" height="1080"
+         xmlns="http://www.w3.org/2000/svg">
+
+      <defs>
+
+        <!-- Glow filters (same as black version) -->
+        <filter id="glow-red" x="-60%" y="-60%" width="220%" height="220%">
+          <feDropShadow dx="0" dy="0" stdDeviation="20"
+            flood-color="#E8163A" flood-opacity="0.9"/>
+        </filter>
+        <filter id="glow-purple" x="-60%" y="-60%" width="220%" height="220%">
+          <feDropShadow dx="0" dy="0" stdDeviation="18"
+            flood-color="#9B30FF" flood-opacity="0.85"/>
+        </filter>
+        <filter id="glow-gold" x="-60%" y="-60%" width="220%" height="220%">
+          <feDropShadow dx="0" dy="0" stdDeviation="20"
+            flood-color="#F0B400" flood-opacity="0.9"/>
+        </filter>
+
+        <!-- Circular clip for centre video -->
+        <clipPath id="circle-clip">
+          <circle cx="960" cy="540" r="100"/>
+        </clipPath>
+
+        <!--
+          Vignette gradient — alpha version uses fully transparent stops.
+          On a black background the vignette is invisible anyway;
+          on a transparent background a black vignette would bleed as
+          opaque pixels. Using transparent stops keeps the edge clean.
+        -->
+        <radialGradient id="vignette-grad" cx="50%" cy="50%" r="50%">
+          <stop offset="58%" stop-color="#000000" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+        </radialGradient>
+
+        <!-- Text-path arcs  r = 212  (arc ≈ 425px — fits 22px/3px bold labels) -->
+        <!-- tpath-1: CCW from 27.5° → 272.5° so PRE-OPERATIVE chars face upward like INTRA-OPERATIVE -->
+        <path id="tpath-1"
+          d="M 1148.05,637.89 A 212,212 0 0,0 969.25,328.20"/>
+        <path id="tpath-2"
+          d="M 781.20,653.91 A 212,212 0 0,0 1138.80,653.91"/>
+        <path id="tpath-3"
+          d="M 771.95,637.89 A 212,212 0 0,1 950.75,328.20"/>
+
+        <!-- Gap mask — 6° wedges (5° nominal + 0.5° bleed margin each side)
+             outer r=252  inner r=123
+             Gap A top  267°→273°  |  Gap B right 27°→33°  |  Gap C left 147°→153° -->
+        <mask id="ring-gaps-mask">
+          <rect x="0" y="0" width="1920" height="1080" fill="white"/>
+          <!-- Gap A  top  267°→273° -->
+          <path fill="black"
+            d="M 946.81,288.35 A 252,252 0 0,1 973.19,288.35
+               L 966.44,417.17 A 123,123 0 0,0 953.56,417.17 Z"/>
+          <!-- Gap B  right  27°→33° -->
+          <path fill="black"
+            d="M 1184.53,654.41 A 252,252 0 0,1 1171.34,677.25
+               L 1063.16,606.99 A 123,123 0 0,0 1069.59,595.84 Z"/>
+          <!-- Gap C  left  147°→153° -->
+          <path fill="black"
+            d="M 748.66,677.25 A 252,252 0 0,1 735.47,654.41
+               L 850.41,595.84 A 123,123 0 0,0 856.84,606.99 Z"/>
+        </mask>
+
+      </defs>
+
+      <!-- ARC SEGMENTS  outer r=250  inner r=125  ring=125px
+           Masked group ensures anti-aliased edge pixels never
+           bleed into the clean transparent gaps. -->
+      <g mask="url(#ring-gaps-mask)">
+
+      <path id="seg-1" class="segment"
+        d="M 970.91,290.24
+           A 250,250 0 0,1 1181.75,655.43
+           L 1070.88,597.72
+           A 125,125 0 0,0  965.45,415.12
+           Z"
+        fill="#4d1020"
+        data-mute="#4d1020"
+        data-active="#E8163A"
+        data-filter="glow-red"
+        cursor="pointer"/>
+
+      <path id="seg-2" class="segment"
+        d="M 1170.85,674.33
+           A 250,250 0 0,1  749.15,674.33
+           L  854.58,607.16
+           A 125,125 0 0,0 1065.42,607.16
+           Z"
+        fill="#2e1260"
+        data-mute="#2e1260"
+        data-active="#9B30FF"
+        data-filter="glow-purple"
+        cursor="pointer"/>
+
+      <path id="seg-3" class="segment"
+        d="M  738.25,655.43
+           A 250,250 0 0,1  949.09,290.24
+           L  954.55,415.12
+           A 125,125 0 0,0  849.12,597.72
+           Z"
+        fill="#3d3000"
+        data-mute="#3d3000"
+        data-active="#F0B400"
+        data-filter="glow-gold"
+        cursor="pointer"/>
+
+      </g><!-- /ring-gaps-mask -->
+
+      <!-- ARC LABELS -->
+      <text class="arc-label" id="label-1">
+        <textPath href="#tpath-1" startOffset="50%" text-anchor="middle">PRE-OPERATIVE</textPath>
+      </text>
+      <text class="arc-label" id="label-2">
+        <textPath href="#tpath-2" startOffset="50%" text-anchor="middle">PATIENT ENGAGEMENT</textPath>
+      </text>
+      <text class="arc-label" id="label-3">
+        <textPath href="#tpath-3" startOffset="50%" text-anchor="middle">INTRA-OPERATIVE</textPath>
+      </text>
+
+      <!-- ARC SWEEP OVERLAYS -->
+      <path id="sweep-1" class="arc-sweep"
+        d="M 968.20,352.18 A 188,188 0 0,1 1126.76,626.81"
+        stroke-dasharray="65 312" stroke-dashoffset="65"/>
+      <path id="sweep-2" class="arc-sweep"
+        d="M 1118.56,641.01 A 188,188 0 0,1 801.44,641.01"
+        stroke-dasharray="65 312" stroke-dashoffset="65"/>
+      <path id="sweep-3" class="arc-sweep"
+        d="M 793.24,626.81 A 188,188 0 0,1 951.80,352.18"
+        stroke-dasharray="65 312" stroke-dashoffset="65"/>
+
+      <!-- CENTRE GROUP -->
+      <g id="center-group">
+        <g clip-path="url(#circle-clip)">
+          <foreignObject x="860" y="440" width="200" height="200">
+            <video xmlns="http://www.w3.org/1999/xhtml"
+              id="spine-video"
+              autoplay muted loop playsinline
+              width="200" height="200">
+              <source src="../ressources%20videos%20%26%20pdf/Decompressions.mp4"
+                      type="video/mp4"/>
+            </video>
+          </foreignObject>
+        </g>
+        <!-- Vignette: transparent in alpha mode (no black bleed) -->
+        <circle id="center-vignette"
+          cx="960" cy="540" r="100"
+          fill="url(#vignette-grad)"
+          pointer-events="none"/>
+      </g>
+
+    </svg>
+
+    <!-- END FRAME -->
+    <div id="end-frame">
+      <p id="end-title">SyncAR Spine<span id="end-cursor">|</span></p>
+      <p id="end-subtitle">Across the Entire Continuum of Care</p>
+    </div>
+
+  </div><!-- /#scene -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="js/animation.js"></script>
+
+</body>
+</html>

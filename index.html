@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SyncAR Spine — Surgical Theater</title>
+
+  <!-- Montserrat replaces Inter for all display text -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <style>
+    /* ── Toggle background button (visible on page, not part of scene) ── */
+    #bg-toggle {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 9999;
+      background: rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.65);
+      border: 1px solid rgba(255,255,255,0.18);
+      padding: 7px 16px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: background 0.2s, color 0.2s;
+      user-select: none;
+    }
+    #bg-toggle:hover {
+      background: rgba(255,255,255,0.14);
+      color: #ffffff;
+    }
+    /* Transparent state indicator */
+    #bg-toggle.is-transparent {
+      border-color: rgba(255,255,255,0.45);
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="scene">
+
+    <!-- ── PARTICLE LAYER ──────────────────────────────────── -->
+    <canvas id="bg-particles"></canvas>
+
+    <!-- ── SVG DIAGRAM ──────────────────────────────────────── -->
+    <!--
+      Circle geometry matching AiBLE Smart Ecosystem reference
+        Canvas      : 1920 × 1080   Centre: (960, 540)
+        Outer r     : 250px
+        Inner r     : 125px   →  Ring : 125px  (25% of ⌀500 = matches reference)
+        Inner/Outer : 50% — large centre circle, as in AiBLE
+        Text/Sweep r: 188px   (exact midline 187.5, rounded)
+        Arc length  : 188 × 115° × π/180 ≈ 377px
+        Dasharray   : 65 + 312 = 377   Offset: 65 → −312
+        Gap : 5°  /  Span : 115°
+
+      Angles  (0°=right, 90°=down, CW+)
+        Seg 1  Pre-Operative     : −87.5° →  27.5°
+        Seg 2  Patient Engagement:  32.5° → 147.5°
+        Seg 3  Intra-Operative   : 152.5° → 267.5°
+
+      Trig constants
+        cos/|sin|(±87.5°): 0.04362 / 0.99905
+        cos/sin(27.5°):    0.88701 / 0.46175
+        cos/sin(32.5°):    0.84339 / 0.53730
+    -->
+    <svg id="diagram"
+         viewBox="0 0 1920 1080"
+         width="1920" height="1080"
+         xmlns="http://www.w3.org/2000/svg">
+
+      <defs>
+
+        <!-- ── Glow filters — start invisible, animated by GSAP ── -->
+        <filter id="glow-red" x="-60%" y="-60%" width="220%" height="220%">
+          <feDropShadow dx="0" dy="0" stdDeviation="20"
+            flood-color="#E8163A" flood-opacity="0.9"/>
+        </filter>
+        <filter id="glow-purple" x="-60%" y="-60%" width="220%" height="220%">
+          <feDropShadow dx="0" dy="0" stdDeviation="18"
+            flood-color="#9B30FF" flood-opacity="0.85"/>
+        </filter>
+        <filter id="glow-gold" x="-60%" y="-60%" width="220%" height="220%">
+          <feDropShadow dx="0" dy="0" stdDeviation="20"
+            flood-color="#F0B400" flood-opacity="0.9"/>
+        </filter>
+
+        <!-- Circular clip for centre video -->
+        <clipPath id="circle-clip">
+          <circle cx="960" cy="540" r="100"/>
+        </clipPath>
+
+        <!-- Vignette gradient for centre circle -->
+        <radialGradient id="vignette-grad" cx="50%" cy="50%" r="50%">
+          <stop offset="58%" stop-color="#000000" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#000000" stop-opacity="0.88"/>
+        </radialGradient>
+
+        <!-- ══════════════════════════════════════════════════
+             Gap mask — cuts clean voids between segments.
+             Each wedge is 6° wide (5° nominal + 0.5° bleed
+             margin each side) to fully erase anti-aliased
+             edge pixels.  r_outer=252  r_inner=123.
+
+             Angles (0°=right, CW+, y-down SVG convention)
+               Gap A  top   : 267° → 273°
+               Gap B  right : 27°  → 33°
+               Gap C  left  : 147° → 153°
+
+             Trig used  (3°=0.05234 sin / 0.99863 cos)
+                       (27°=0.45399 sin / 0.89101 cos)
+                       (33°=0.54464 sin / 0.83867 cos)
+             ══════════════════════════════════════════════════ -->
+        <mask id="ring-gaps-mask">
+          <!-- Show everything by default -->
+          <rect x="0" y="0" width="1920" height="1080" fill="white"/>
+
+          <!-- Gap A  top  267°→273°
+               Outer r=252: (946.81,288.35)→(973.19,288.35)
+               Inner r=123: (966.44,417.17)→(953.56,417.17) -->
+          <path fill="black"
+            d="M 946.81,288.35 A 252,252 0 0,1 973.19,288.35
+               L 966.44,417.17 A 123,123 0 0,0 953.56,417.17 Z"/>
+
+          <!-- Gap B  right  27°→33°
+               Outer r=252: (1184.53,654.41)→(1171.34,677.25)
+               Inner r=123: (1069.59,595.84)→(1063.16,606.99) -->
+          <path fill="black"
+            d="M 1184.53,654.41 A 252,252 0 0,1 1171.34,677.25
+               L 1063.16,606.99 A 123,123 0 0,0 1069.59,595.84 Z"/>
+
+          <!-- Gap C  left  147°→153°
+               Outer r=252: (748.66,677.25)→(735.47,654.41)
+               Inner r=123: (856.84,606.99)→(850.41,595.84) -->
+          <path fill="black"
+            d="M 748.66,677.25 A 252,252 0 0,1 735.47,654.41
+               L 850.41,595.84 A 123,123 0 0,0 856.84,606.99 Z"/>
+        </mask>
+
+        <!-- ══════════════════════════════════════════════════
+             Text-path arcs  r = 212
+             Arc length: 212 × (115°×π/180) = 212 × 2.0071 ≈ 425px
+             22px/3px labels: longest "PATIENT ENGAGEMENT" ≈ 288px
+             → 68px headroom each side; no clipping on any label.
+
+             At r=212 the character angle variation across 115° is
+             reduced vs. r=200, and 22px glyphs follow the curve
+             without the steep-tilt issue seen at 28px.
+
+             Trig constants (same as segments):
+               cos/|sin|(87.5°): 0.04362 / 0.99905
+               cos/sin(27.5°):   0.88701 / 0.46175
+               cos/sin(32.5°):   0.84339 / 0.53730
+             ══════════════════════════════════════════════════ -->
+
+        <!-- Seg 1  CW  −87.5° → 27.5°
+             Start(r=212,−87.5°): (960+212×0.04362, 540−212×0.99905) = (969.25, 328.20)
+             End  (r=212, 27.5°): (960+212×0.88701, 540+212×0.46175) = (1148.05, 637.89) -->
+        <!-- CCW: start at 27.5° → sweep CCW → end at 272.5° (near top), chars face upward like INTRA-OPERATIVE -->
+        <path id="tpath-1"
+          d="M 1148.05,637.89 A 212,212 0 0,0 969.25,328.20"/>
+
+        <!-- Seg 2  CCW  147.5° → 32.5°  (L→R through bottom)
+             Start(r=212,147.5°): (960−212×0.84339, 540+212×0.53730) = (781.20, 653.91)
+             End  (r=212, 32.5°): (960+212×0.84339, 540+212×0.53730) = (1138.80, 653.91) -->
+        <path id="tpath-2"
+          d="M 781.20,653.91 A 212,212 0 0,0 1138.80,653.91"/>
+
+        <!-- Seg 3  CW  152.5° → 267.5°  (bottom→top left — READABLE)
+             Start(r=212,152.5°): (960−212×0.88701, 540+212×0.46175) = (771.95, 637.89)
+             End  (r=212,267.5°): (960−212×0.04362, 540−212×0.99905) = (950.75, 328.20) -->
+        <path id="tpath-3"
+          d="M 771.95,637.89 A 212,212 0 0,1 950.75,328.20"/>
+
+      </defs>
+
+      <!-- ══════════════════════════════════════════════════════
+           ARC SEGMENTS  outer r=250  inner r=125  ring=125px
+           Wrapped in a masked group so anti-aliased edge pixels
+           never bleed into the clean black gaps between segments.
+           ══════════════════════════════════════════════════════ -->
+      <g mask="url(#ring-gaps-mask)">
+
+      <!-- Seg 1 — Pre-Operative  (−87.5° → 27.5°)
+           Outer  start=(970.91,290.24)  end=(1181.75,655.43)
+           Inner  end  (r=125, 27.5°)=(1070.88,597.72)
+                  start(r=125,−87.5°)=(965.45,415.12)               -->
+      <path id="seg-1" class="segment"
+        d="M 970.91,290.24
+           A 250,250 0 0,1 1181.75,655.43
+           L 1070.88,597.72
+           A 125,125 0 0,0  965.45,415.12
+           Z"
+        fill="#4d1020"
+        data-mute="#4d1020"
+        data-active="#E8163A"
+        data-filter="glow-red"
+        cursor="pointer"/>
+
+      <!-- Seg 2 — Patient Engagement  (32.5° → 147.5°)
+           Outer  start=(1170.85,674.33)  end=(749.15,674.33)
+           Inner  end  (r=125,147.5°)=(854.58,607.16)
+                  start(r=125, 32.5°)=(1065.42,607.16)              -->
+      <path id="seg-2" class="segment"
+        d="M 1170.85,674.33
+           A 250,250 0 0,1  749.15,674.33
+           L  854.58,607.16
+           A 125,125 0 0,0 1065.42,607.16
+           Z"
+        fill="#2e1260"
+        data-mute="#2e1260"
+        data-active="#9B30FF"
+        data-filter="glow-purple"
+        cursor="pointer"/>
+
+      <!-- Seg 3 — Intra-Operative  (152.5° → 267.5°)
+           Outer  start=(738.25,655.43)  end=(949.09,290.24)
+           Inner  end  (r=125,267.5°)=(954.55,415.12)
+                  start(r=125,152.5°)=(849.12,597.72)               -->
+      <path id="seg-3" class="segment"
+        d="M  738.25,655.43
+           A 250,250 0 0,1  949.09,290.24
+           L  954.55,415.12
+           A 125,125 0 0,0  849.12,597.72
+           Z"
+        fill="#3d3000"
+        data-mute="#3d3000"
+        data-active="#F0B400"
+        data-filter="glow-gold"
+        cursor="pointer"/>
+
+      </g><!-- /ring-gaps-mask -->
+
+      <!-- ── GAP COVERS — belt-and-suspenders black fills ──────────
+           Placed above segments; guarantee zero bleed regardless of
+           anti-aliasing or filter spread. 6° wide, r_outer=252, r_inner=123.
+           (Same geometry as ring-gaps-mask wedges in <defs>.)          -->
+      <path class="gap-cover"
+        d="M 946.81,288.35 A 252,252 0 0,1 973.19,288.35
+           L 966.44,417.17 A 123,123 0 0,0 953.56,417.17 Z"/>
+      <path class="gap-cover"
+        d="M 1184.53,654.41 A 252,252 0 0,1 1171.34,677.25
+           L 1063.16,606.99 A 123,123 0 0,0 1069.59,595.84 Z"/>
+      <path class="gap-cover"
+        d="M 748.66,677.25 A 252,252 0 0,1 735.47,654.41
+           L 850.41,595.84 A 123,123 0 0,0 856.84,606.99 Z"/>
+
+      <!-- ── ARC LABELS ─────────────────────────────────────── -->
+      <text class="arc-label" id="label-1">
+        <textPath href="#tpath-1" startOffset="50%" text-anchor="middle">PRE-OPERATIVE</textPath>
+      </text>
+
+      <text class="arc-label" id="label-2">
+        <textPath href="#tpath-2" startOffset="50%" text-anchor="middle">PATIENT ENGAGEMENT</textPath>
+      </text>
+
+      <text class="arc-label" id="label-3">
+        <textPath href="#tpath-3" startOffset="50%" text-anchor="middle">INTRA-OPERATIVE</textPath>
+      </text>
+
+      <!-- ══════════════════════════════════════════════════════
+           ARC SWEEP OVERLAYS  r=188  stroke-width=120 (CSS)
+           dasharray 65+312=377 ≈ arc length  |  offset 65 → −312
+           ══════════════════════════════════════════════════════ -->
+
+      <!-- sweep-1  CW  −87.5°→27.5°  (same path as tpath-1) -->
+      <path id="sweep-1" class="arc-sweep"
+        d="M 968.20,352.18 A 188,188 0 0,1 1126.76,626.81"
+        stroke-dasharray="65 312" stroke-dashoffset="65"/>
+
+      <!-- sweep-2  CW  32.5°→147.5°
+           Uses CW direction for sweep (opposite to tpath-2 which is CCW for text) -->
+      <path id="sweep-2" class="arc-sweep"
+        d="M 1118.56,641.01 A 188,188 0 0,1 801.44,641.01"
+        stroke-dasharray="65 312" stroke-dashoffset="65"/>
+
+      <!-- sweep-3  CW  152.5°→267.5°  (same path as tpath-3) -->
+      <path id="sweep-3" class="arc-sweep"
+        d="M 793.24,626.81 A 188,188 0 0,1 951.80,352.18"
+        stroke-dasharray="65 312" stroke-dashoffset="65"/>
+
+      <!-- ── CENTRE GROUP ─────────────────────────────────── -->
+      <g id="center-group">
+
+        <g clip-path="url(#circle-clip)">
+          <foreignObject x="860" y="440" width="200" height="200">
+            <video xmlns="http://www.w3.org/1999/xhtml"
+              id="spine-video"
+              autoplay muted loop playsinline
+              width="200" height="200">
+              <source src="../ressources%20videos%20%26%20pdf/Decompressions.mp4"
+                      type="video/mp4"/>
+            </video>
+          </foreignObject>
+        </g>
+
+        <circle id="center-vignette"
+          cx="960" cy="540" r="100"
+          fill="url(#vignette-grad)"
+          pointer-events="none"/>
+
+      </g>
+
+    </svg>
+
+    <!-- ── END FRAME ─────────────────────────────────────── -->
+    <div id="end-frame">
+      <p id="end-title">SyncAR Spine<span id="end-cursor">|</span></p>
+      <p id="end-subtitle">Across the Entire Continuum of Care</p>
+    </div>
+
+  </div><!-- /#scene -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="js/animation.js"></script>
+
+  <!-- ── Toggle background: black ↔ transparent (for alpha export) ── -->
+  <button id="bg-toggle" title="Toggle black / transparent background for OBS alpha recording">⬛ BG : BLACK</button>
+  <script>
+    (function () {
+      let isBlack = true;
+      const btn  = document.getElementById('bg-toggle');
+      const root = document.documentElement;
+
+      btn.addEventListener('click', function () {
+        isBlack = !isBlack;
+        const bg = isBlack ? '#000000' : 'transparent';
+        root.style.background  = bg;
+        document.body.style.background = bg;
+        btn.textContent = isBlack ? '⬛ BG : BLACK' : '◻ BG : TRANSPARENT';
+        btn.classList.toggle('is-transparent', !isBlack);
+      });
+    }());
+  </script>
+
+</body>
+</html>
