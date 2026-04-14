@@ -8,7 +8,7 @@
   <!-- Montserrat replaces Inter for all display text -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/styles.css" />
 
@@ -76,6 +76,7 @@
     <svg id="diagram"
          viewBox="0 0 1920 1080"
          width="1920" height="1080"
+         overflow="visible"
          xmlns="http://www.w3.org/2000/svg">
 
       <defs>
@@ -94,9 +95,9 @@
             flood-color="#F0B400" flood-opacity="0.9"/>
         </filter>
 
-        <!-- Circular clip for centre video -->
+        <!-- Circular clip for centre video  r=200 (2× original 100) -->
         <clipPath id="circle-clip">
-          <circle cx="960" cy="540" r="100"/>
+          <circle cx="960" cy="540" r="200"/>
         </clipPath>
 
         <!-- Vignette gradient for centre circle -->
@@ -106,99 +107,62 @@
         </radialGradient>
 
         <!-- ══════════════════════════════════════════════════
-             Gap mask — cuts clean voids between segments.
-             Each wedge is 6° wide (5° nominal + 0.5° bleed
-             margin each side) to fully erase anti-aliased
-             edge pixels.  r_outer=252  r_inner=123.
-
-             Angles (0°=right, CW+, y-down SVG convention)
-               Gap A  top   : 267° → 273°
-               Gap B  right : 27°  → 33°
-               Gap C  left  : 147° → 153°
-
-             Trig used  (3°=0.05234 sin / 0.99863 cos)
-                       (27°=0.45399 sin / 0.89101 cos)
-                       (33°=0.54464 sin / 0.83867 cos)
+             Gap mask — 2× scale  r_outer=504  r_inner=246
+             6° wedges (267°→273°, 27°→33°, 147°→153°)
+             All coords: x_new = 2x−960, y_new = 2y−540
              ══════════════════════════════════════════════════ -->
         <mask id="ring-gaps-mask">
-          <!-- Show everything by default -->
           <rect x="0" y="0" width="1920" height="1080" fill="white"/>
 
-          <!-- Gap A  top  267°→273°
-               Outer r=252: (946.81,288.35)→(973.19,288.35)
-               Inner r=123: (966.44,417.17)→(953.56,417.17) -->
+          <!-- Gap A  top  267°→273° -->
           <path fill="black"
-            d="M 946.81,288.35 A 252,252 0 0,1 973.19,288.35
-               L 966.44,417.17 A 123,123 0 0,0 953.56,417.17 Z"/>
+            d="M 933.62,36.70 A 504,504 0 0,1 986.38,36.70
+               L 972.88,294.34 A 246,246 0 0,0 947.12,294.34 Z"/>
 
-          <!-- Gap B  right  27°→33°
-               Outer r=252: (1184.53,654.41)→(1171.34,677.25)
-               Inner r=123: (1069.59,595.84)→(1063.16,606.99) -->
+          <!-- Gap B  right  27°→33° -->
           <path fill="black"
-            d="M 1184.53,654.41 A 252,252 0 0,1 1171.34,677.25
-               L 1063.16,606.99 A 123,123 0 0,0 1069.59,595.84 Z"/>
+            d="M 1409.06,768.82 A 504,504 0 0,1 1382.68,814.50
+               L 1166.32,673.98 A 246,246 0 0,0 1179.18,651.68 Z"/>
 
-          <!-- Gap C  left  147°→153°
-               Outer r=252: (748.66,677.25)→(735.47,654.41)
-               Inner r=123: (856.84,606.99)→(850.41,595.84) -->
+          <!-- Gap C  left  147°→153° -->
           <path fill="black"
-            d="M 748.66,677.25 A 252,252 0 0,1 735.47,654.41
-               L 850.41,595.84 A 123,123 0 0,0 856.84,606.99 Z"/>
+            d="M 537.32,814.50 A 504,504 0 0,1 510.94,768.82
+               L 740.82,651.68 A 246,246 0 0,0 753.68,673.98 Z"/>
         </mask>
 
         <!-- ══════════════════════════════════════════════════
-             Text-path arcs  r = 212
-             Arc length: 212 × (115°×π/180) = 212 × 2.0071 ≈ 425px
-             22px/3px labels: longest "PATIENT ENGAGEMENT" ≈ 288px
-             → 68px headroom each side; no clipping on any label.
-
-             At r=212 the character angle variation across 115° is
-             reduced vs. r=200, and 22px glyphs follow the curve
-             without the steep-tilt issue seen at 28px.
-
-             Trig constants (same as segments):
-               cos/|sin|(87.5°): 0.04362 / 0.99905
-               cos/sin(27.5°):   0.88701 / 0.46175
-               cos/sin(32.5°):   0.84339 / 0.53730
+             Text-path arcs  r = 424  (2× original 212)
+             Arc length: 424 × 2.0071 ≈ 851px — fits all labels
+             at 30px/3px letter-spacing with ample headroom.
+             All coords: x_new = 2x−960, y_new = 2y−540
              ══════════════════════════════════════════════════ -->
 
-        <!-- Seg 1  CW  −87.5° → 27.5°
-             Start(r=212,−87.5°): (960+212×0.04362, 540−212×0.99905) = (969.25, 328.20)
-             End  (r=212, 27.5°): (960+212×0.88701, 540+212×0.46175) = (1148.05, 637.89) -->
-        <!-- CCW: start at 27.5° → sweep CCW → end at 272.5° (near top), chars face upward like INTRA-OPERATIVE -->
+        <!-- tpath-1  CCW  27.5°→272.5°  (PRE-OPERATIVE — chars face upward) -->
         <path id="tpath-1"
-          d="M 1148.05,637.89 A 212,212 0 0,0 969.25,328.20"/>
+          d="M 1336.10,735.78 A 424,424 0 0,0 978.50,116.40"/>
 
-        <!-- Seg 2  CCW  147.5° → 32.5°  (L→R through bottom)
-             Start(r=212,147.5°): (960−212×0.84339, 540+212×0.53730) = (781.20, 653.91)
-             End  (r=212, 32.5°): (960+212×0.84339, 540+212×0.53730) = (1138.80, 653.91) -->
+        <!-- tpath-2  CCW  147.5°→32.5°  (PATIENT ENGAGEMENT — L→R through bottom) -->
         <path id="tpath-2"
-          d="M 781.20,653.91 A 212,212 0 0,0 1138.80,653.91"/>
+          d="M 602.40,767.82 A 424,424 0 0,0 1317.60,767.82"/>
 
-        <!-- Seg 3  CW  152.5° → 267.5°  (bottom→top left — READABLE)
-             Start(r=212,152.5°): (960−212×0.88701, 540+212×0.46175) = (771.95, 637.89)
-             End  (r=212,267.5°): (960−212×0.04362, 540−212×0.99905) = (950.75, 328.20) -->
+        <!-- tpath-3  CW  152.5°→267.5°  (INTRA-OPERATIVE — readable upward) -->
         <path id="tpath-3"
-          d="M 771.95,637.89 A 212,212 0 0,1 950.75,328.20"/>
+          d="M 583.90,735.78 A 424,424 0 0,1 941.50,116.40"/>
 
       </defs>
 
       <!-- ══════════════════════════════════════════════════════
-           ARC SEGMENTS  outer r=250  inner r=125  ring=125px
-           Wrapped in a masked group so anti-aliased edge pixels
-           never bleed into the clean black gaps between segments.
+           ARC SEGMENTS  outer r=500  inner r=250  ring=250px
+           2× scale — fills nearly full 1080px height
            ══════════════════════════════════════════════════════ -->
       <g mask="url(#ring-gaps-mask)">
 
-      <!-- Seg 1 — Pre-Operative  (−87.5° → 27.5°)
-           Outer  start=(970.91,290.24)  end=(1181.75,655.43)
-           Inner  end  (r=125, 27.5°)=(1070.88,597.72)
-                  start(r=125,−87.5°)=(965.45,415.12)               -->
+      <!-- Seg 1 — Pre-Operative  (−87.5° → 27.5°)  2× coords -->
       <path id="seg-1" class="segment"
-        d="M 970.91,290.24
-           A 250,250 0 0,1 1181.75,655.43
-           L 1070.88,597.72
-           A 125,125 0 0,0  965.45,415.12
+        d="M 981.82,40.48
+           A 500,500 0 0,1 1403.50,770.86
+           L 1181.76,655.44
+           A 250,250 0 0,0  970.90,290.24
            Z"
         fill="#4d1020"
         data-mute="#4d1020"
@@ -206,15 +170,12 @@
         data-filter="glow-red"
         cursor="pointer"/>
 
-      <!-- Seg 2 — Patient Engagement  (32.5° → 147.5°)
-           Outer  start=(1170.85,674.33)  end=(749.15,674.33)
-           Inner  end  (r=125,147.5°)=(854.58,607.16)
-                  start(r=125, 32.5°)=(1065.42,607.16)              -->
+      <!-- Seg 2 — Patient Engagement  (32.5° → 147.5°)  2× coords -->
       <path id="seg-2" class="segment"
-        d="M 1170.85,674.33
-           A 250,250 0 0,1  749.15,674.33
-           L  854.58,607.16
-           A 125,125 0 0,0 1065.42,607.16
+        d="M 1381.70,808.66
+           A 500,500 0 0,1  538.30,808.66
+           L  749.16,674.32
+           A 250,250 0 0,0 1170.84,674.32
            Z"
         fill="#2e1260"
         data-mute="#2e1260"
@@ -222,15 +183,12 @@
         data-filter="glow-purple"
         cursor="pointer"/>
 
-      <!-- Seg 3 — Intra-Operative  (152.5° → 267.5°)
-           Outer  start=(738.25,655.43)  end=(949.09,290.24)
-           Inner  end  (r=125,267.5°)=(954.55,415.12)
-                  start(r=125,152.5°)=(849.12,597.72)               -->
+      <!-- Seg 3 — Intra-Operative  (152.5° → 267.5°)  2× coords -->
       <path id="seg-3" class="segment"
-        d="M  738.25,655.43
-           A 250,250 0 0,1  949.09,290.24
-           L  954.55,415.12
-           A 125,125 0 0,0  849.12,597.72
+        d="M  516.50,770.86
+           A 500,500 0 0,1  938.18,40.48
+           L  949.10,290.24
+           A 250,250 0 0,0  738.24,655.44
            Z"
         fill="#3d3000"
         data-mute="#3d3000"
@@ -240,19 +198,16 @@
 
       </g><!-- /ring-gaps-mask -->
 
-      <!-- ── GAP COVERS — belt-and-suspenders black fills ──────────
-           Placed above segments; guarantee zero bleed regardless of
-           anti-aliasing or filter spread. 6° wide, r_outer=252, r_inner=123.
-           (Same geometry as ring-gaps-mask wedges in <defs>.)          -->
+      <!-- ── GAP COVERS — belt-and-suspenders black fills (2× scale) ── -->
       <path class="gap-cover"
-        d="M 946.81,288.35 A 252,252 0 0,1 973.19,288.35
-           L 966.44,417.17 A 123,123 0 0,0 953.56,417.17 Z"/>
+        d="M 933.62,36.70 A 504,504 0 0,1 986.38,36.70
+           L 972.88,294.34 A 246,246 0 0,0 947.12,294.34 Z"/>
       <path class="gap-cover"
-        d="M 1184.53,654.41 A 252,252 0 0,1 1171.34,677.25
-           L 1063.16,606.99 A 123,123 0 0,0 1069.59,595.84 Z"/>
+        d="M 1409.06,768.82 A 504,504 0 0,1 1382.68,814.50
+           L 1166.32,673.98 A 246,246 0 0,0 1179.18,651.68 Z"/>
       <path class="gap-cover"
-        d="M 748.66,677.25 A 252,252 0 0,1 735.47,654.41
-           L 850.41,595.84 A 123,123 0 0,0 856.84,606.99 Z"/>
+        d="M 537.32,814.50 A 504,504 0 0,1 510.94,768.82
+           L 740.82,651.68 A 246,246 0 0,0 753.68,673.98 Z"/>
 
       <!-- ── ARC LABELS ─────────────────────────────────────── -->
       <text class="arc-label" id="label-1">
@@ -268,35 +223,34 @@
       </text>
 
       <!-- ══════════════════════════════════════════════════════
-           ARC SWEEP OVERLAYS  r=188  stroke-width=120 (CSS)
-           dasharray 65+312=377 ≈ arc length  |  offset 65 → −312
+           ARC SWEEP OVERLAYS  r=376 (2×188)  stroke-width=245 (CSS)
+           arc length 376×2.0071≈755  dasharray 130+624=754
            ══════════════════════════════════════════════════════ -->
 
-      <!-- sweep-1  CW  −87.5°→27.5°  (same path as tpath-1) -->
+      <!-- sweep-1  CW  −87.5°→27.5° -->
       <path id="sweep-1" class="arc-sweep"
-        d="M 968.20,352.18 A 188,188 0 0,1 1126.76,626.81"
-        stroke-dasharray="65 312" stroke-dashoffset="65"/>
+        d="M 976.40,164.36 A 376,376 0 0,1 1293.52,713.62"
+        stroke-dasharray="130 624" stroke-dashoffset="130"/>
 
-      <!-- sweep-2  CW  32.5°→147.5°
-           Uses CW direction for sweep (opposite to tpath-2 which is CCW for text) -->
+      <!-- sweep-2  CW  32.5°→147.5° -->
       <path id="sweep-2" class="arc-sweep"
-        d="M 1118.56,641.01 A 188,188 0 0,1 801.44,641.01"
-        stroke-dasharray="65 312" stroke-dashoffset="65"/>
+        d="M 1277.12,742.02 A 376,376 0 0,1 642.88,742.02"
+        stroke-dasharray="130 624" stroke-dashoffset="130"/>
 
-      <!-- sweep-3  CW  152.5°→267.5°  (same path as tpath-3) -->
+      <!-- sweep-3  CW  152.5°→267.5° -->
       <path id="sweep-3" class="arc-sweep"
-        d="M 793.24,626.81 A 188,188 0 0,1 951.80,352.18"
-        stroke-dasharray="65 312" stroke-dashoffset="65"/>
+        d="M 626.48,713.62 A 376,376 0 0,1 943.60,164.36"
+        stroke-dasharray="130 624" stroke-dashoffset="130"/>
 
       <!-- ── CENTRE GROUP ─────────────────────────────────── -->
       <g id="center-group">
 
         <g clip-path="url(#circle-clip)">
-          <foreignObject x="860" y="440" width="200" height="200">
+          <foreignObject x="760" y="340" width="400" height="400">
             <video xmlns="http://www.w3.org/1999/xhtml"
               id="spine-video"
               autoplay muted loop playsinline
-              width="200" height="200">
+              width="400" height="400">
               <source src="../ressources%20videos%20%26%20pdf/Decompressions.mp4"
                       type="video/mp4"/>
             </video>
@@ -304,7 +258,7 @@
         </g>
 
         <circle id="center-vignette"
-          cx="960" cy="540" r="100"
+          cx="960" cy="540" r="200"
           fill="url(#vignette-grad)"
           pointer-events="none"/>
 

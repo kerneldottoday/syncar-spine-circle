@@ -162,8 +162,8 @@ gsap.set([swp1, swp2, swp3], { opacity: 0 });
 function sweepArc(sweepId, atTime) {
   tl.fromTo(
     sweepId,
-    { attr: { 'stroke-dashoffset': 65 }, opacity: 0.28 },
-    { attr: { 'stroke-dashoffset': -312 }, opacity: 0,
+    { attr: { 'stroke-dashoffset': 130 }, opacity: 0.28 },
+    { attr: { 'stroke-dashoffset': -624 }, opacity: 0,
       duration: 0.45, ease: 'power1.inOut' },
     atTime
   );
