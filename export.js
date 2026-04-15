@@ -1,21 +1,18 @@
 'use strict';
 
 /**
- * SyncAR Spine — Animation Frame Exporter
+ * SyncAR Spine — Animation Frame Exporter (self-contained)
  *
  * Captures each frame of the animation with a true alpha channel by:
- *   1. Opening index-alpha.html in headless Chromium via Puppeteer
- *   2. Pausing GSAP's global timeline and seeking frame-by-frame
- *   3. Screenshotting each frame as a PNG with omitBackground: true
- *   4. Assembling the PNG sequence into WebM VP9+alpha via FFmpeg
+ *   1. Starting a local HTTP server (no external server needed)
+ *   2. Opening index-alpha.html in headless Chromium via Puppeteer
+ *   3. Pausing GSAP's global timeline and seeking frame-by-frame
+ *   4. Screenshotting each frame as a PNG with omitBackground: true
+ *   5. Assembling the PNG sequence into WebM VP9+alpha via FFmpeg
  *
- * The resulting .webm or raw frame sequence can then be converted to
- * ProRes 4444 for After Effects / Final Cut Pro (see README.md).
- *
- * Prerequisites:
- *   - Node.js 16+  →  npm install
- *   - HTTP server on port 8765  →  python -m http.server 8765
- *   - FFmpeg in PATH (for video assembly step)
+ * The resulting .webm can then be converted to ProRes 4444:
+ *   ffmpeg -i syncar-spine-alpha.webm -c:v prores_ks -profile:v 4 \
+ *          -pix_fmt yuva444p10le -c:a pcm_s16le syncar-spine-final.mov
  *
  * Usage:
  *   node export.js
@@ -24,14 +21,18 @@
 const puppeteer    = require('puppeteer');
 const fs           = require('fs');
 const path         = require('path');
+const http         = require('http');
 const { execSync } = require('child_process');
 
 /* ─────────────────────────────────────────────────────────────────────
    CONFIGURATION  — adjust before running
 ───────────────────────────────────────────────────────────────────── */
+const SERVER_PORT = 8765;
+const ROOT        = path.resolve(__dirname, '..');   // "mo project" parent folder
+
 const CONFIG = {
   // URL of the alpha-background version of the animation
-  url: 'http://localhost:8765/syncar-circle/index-alpha.html',
+  url: `http://localhost:${SERVER_PORT}/syncar-circle/index-alpha.html`,
 
   // Capture parameters
   fps:      30,
@@ -50,6 +51,69 @@ const CONFIG = {
   // Set to false only if you add rAF-sync logic yourself.
   hideParticles: true,
 };
+
+/* ─────────────────────────────────────────────────────────────────────
+   HTTP SERVER  — serves the entire "mo project" tree so <video> and
+   relative asset paths resolve correctly (range-request aware)
+───────────────────────────────────────────────────────────────────── */
+const MIME = {
+  '.html': 'text/html',
+  '.css':  'text/css',
+  '.js':   'application/javascript',
+  '.mp4':  'video/mp4',
+  '.webm': 'video/webm',
+  '.png':  'image/png',
+  '.jpg':  'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.svg':  'image/svg+xml',
+  '.woff2':'font/woff2',
+  '.ico':  'image/x-icon',
+};
+
+function startServer() {
+  return new Promise((resolve, reject) => {
+    const srv = http.createServer((req, res) => {
+      let urlPath = req.url.split('?')[0];
+      try { urlPath = decodeURIComponent(urlPath); } catch (_) {}
+
+      const filePath = path.normalize(path.join(ROOT, urlPath));
+      if (!filePath.startsWith(ROOT)) {
+        res.writeHead(403); res.end('Forbidden'); return;
+      }
+
+      fs.stat(filePath, (statErr, stat) => {
+        if (statErr) { res.writeHead(404); res.end('Not found'); return; }
+
+        const ext   = path.extname(filePath).toLowerCase();
+        const mime  = MIME[ext] || 'application/octet-stream';
+        const range = req.headers.range;
+
+        if (range) {
+          const [, s, e] = range.match(/bytes=(\d+)-(\d*)/) || [];
+          const start = parseInt(s, 10);
+          const end   = e ? parseInt(e, 10) : stat.size - 1;
+          res.writeHead(206, {
+            'Content-Range':  `bytes ${start}-${end}/${stat.size}`,
+            'Accept-Ranges':  'bytes',
+            'Content-Length': end - start + 1,
+            'Content-Type':   mime,
+          });
+          fs.createReadStream(filePath, { start, end }).pipe(res);
+        } else {
+          res.writeHead(200, {
+            'Content-Length': stat.size,
+            'Content-Type':   mime,
+            'Accept-Ranges':  'bytes',
+          });
+          fs.createReadStream(filePath).pipe(res);
+        }
+      });
+    });
+
+    srv.on('error', reject);
+    srv.listen(SERVER_PORT, '127.0.0.1', () => resolve(srv));
+  });
+}
 
 /* ─────────────────────────────────────────────────────────────────────
    UTILITIES
@@ -246,8 +310,13 @@ function printFFmpegCommands(webmAvailable) {
   console.log('╚══════════════════════════════════════════════╝');
 
   const t0 = Date.now();
+  let server;
 
   try {
+    process.stdout.write('→ Starting HTTP server on port ' + SERVER_PORT + ' ...');
+    server = await startServer();
+    console.log(' ✓\n');
+
     await captureFrames();
     const webmOk = assembleVideo();
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
@@ -258,5 +327,7 @@ function printFFmpegCommands(webmAvailable) {
     console.error('\n✗ Export failed:', err.message);
     console.error(err.stack);
     process.exit(1);
+  } finally {
+    if (server) server.close();
   }
 })();
