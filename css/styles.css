@@ -1,6 +1,6 @@
 /* ─────────────────────────────────────────────────────────────
    SyncAR Spine — Surgical Theater
-   styles.css
+   styles.css  (v3 — client meeting update)
 ───────────────────────────────────────────────────────────── */
 
 *, *::before, *::after {
@@ -54,41 +54,28 @@ html, body {
 }
 
 /* ─── ARC LABELS ─────────────────────────────────────────────── */
-/*
-  Montserrat 22px bold uppercase — sits on the midline (r=212).
-  22px / 3px letter-spacing keeps total text width well within
-  the 425px arc (115° at r=212), preventing clipping on all labels
-  and reducing per-character angle variation on the steeper arcs.
-*/
 .arc-label {
   fill: #ffffff;
   font-family: 'Montserrat', sans-serif;
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 500;
   letter-spacing: 3px;
   pointer-events: none;
   user-select: none;
 }
 
-/* ─── GAP COVERS (index.html only — belt-and-suspenders) ──────── */
-/*
-  Solid black shapes placed above segments to guarantee zero bleed
-  in the gaps, regardless of anti-aliasing or filter spread.
-*/
+/* ─── GAP COVERS ─────────────────────────────────────────────── */
 .gap-cover {
   fill: #000000;
   pointer-events: none;
 }
 
 /* ─── ARC SWEEP OVERLAYS ─────────────────────────────────────── */
-/*
-  White stroke at ring midline.
-  stroke-width=120 covers the full 125px ring (slight inset on each edge).
-*/
+/* stroke-width=145 fills the 150px-wide ring */
 .arc-sweep {
   fill: none;
   stroke: #ffffff;
-  stroke-width: 245;
+  stroke-width: 145;
   stroke-linecap: butt;
   opacity: 0;
   pointer-events: none;
@@ -97,10 +84,54 @@ html, body {
 /* ─── CENTRE VIDEO ───────────────────────────────────────────── */
 #spine-video {
   display: block;
-  width: 400px;
-  height: 400px;
+  width: 680px;
+  height: 680px;
   object-fit: cover;
   border-radius: 50%;
+}
+
+/* ─── SEGMENT BANNERS ────────────────────────────────────────── */
+/*
+  Rectangular labels that slide in when each segment activates.
+  GSAP handles opacity + transform (x/y). CSS provides position + color.
+  xPercent: -50 set by GSAP for #banner-intraop centering.
+*/
+.segment-banner {
+  position: absolute;
+  z-index: 3;
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  padding: 14px 32px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #ffffff;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  /* opacity and transform controlled by GSAP */
+}
+
+/* Patient Engagement — top-left */
+#banner-patient {
+  top: 72px;
+  left: 72px;
+  background: linear-gradient(135deg, #6B2D8B 0%, #9B30FF 100%);
+}
+
+/* Surgical Planning — top-right */
+#banner-surgical {
+  top: 72px;
+  right: 72px;
+  background: linear-gradient(135deg, #E85D04 0%, #E8163A 100%);
+}
+
+/* Intraoperative Execution — bottom-center */
+#banner-intraop {
+  bottom: 72px;
+  left: 50%;
+  background: linear-gradient(135deg, #F0B400 0%, #FFE566 100%);
+  color: #1a0e00;  /* dark text on bright gold */
 }
 
 /* ─── END FRAME ──────────────────────────────────────────────── */
@@ -113,7 +144,6 @@ html, body {
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  /* opacity animated by GSAP */
 }
 
 #end-title {
@@ -134,7 +164,18 @@ html, body {
   letter-spacing: 6px;
   margin-top: 24px;
   text-align: center;
-  /* opacity 0.7 set via GSAP inline */
+}
+
+#end-company {
+  color: #ffffff;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 18px;
+  font-weight: 300;
+  letter-spacing: 12px;
+  margin-top: 40px;
+  text-align: center;
+  text-transform: uppercase;
+  opacity: 0.55;
 }
 
 /* ─── CURSOR ─────────────────────────────────────────────────── */
@@ -143,5 +184,4 @@ html, body {
   font-weight: 100;
   margin-left: 4px;
   opacity: 0;
-  /* opacity animated by GSAP: 3 blinks then fade out */
 }
