@@ -1,0 +1,12 @@
+node_modules/
+frames/
+_frames/
+AE-assets/
+AE-package.zip
+syncar-spine-final.mov
+syncar-spine-final.mp4
+syncar-spine-alpha.webm
+syncar-spine-animation.mp4
+record.js
+export.js
+ae-export.js
